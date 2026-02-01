@@ -1,12 +1,22 @@
+// director.js
 
-const API_URL = window.API_URL || 
-  (window.location.hostname === 'localhost' 
+// NO declarar API_URL aquí, usar window.API_URL
+if (!window.API_URL) {
+  console.error('❌ ERROR: config.js no se cargó');
+  // Fallback
+  window.API_URL = window.location.hostname === 'localhost' 
     ? 'http://localhost:3000/api'
-    : 'https://gestion-clubes.onrender.com/api');
+    : 'https://gestion-clubes.onrender.com/api';
+}
 
 const token = localStorage.getItem("token");
-const rol = localStorage.getItem("rol");
+const clubId = localStorage.getItem("club_id");
 
+console.log('🔧 director.js - API_URL:', window.API_URL);
+console.log('🔧 Token:', token ? 'Presente' : 'Ausente');
+console.log('🔧 Club ID:', clubId);
+
+// ... el resto del código igual que antes ...
 // Verificar autenticación
 if (!token) {
   window.location.href = "/login.html";

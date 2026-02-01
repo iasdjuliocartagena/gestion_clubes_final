@@ -1,14 +1,24 @@
-// public/js/claseDetalle.js
+// claseDetalle.js
 
-// Configuración API URL
-const API_URL = window.API_URL || 
-  (window.location.hostname === 'localhost' 
+// NO declarar API_URL aquí, usar window.API_URL
+if (!window.API_URL) {
+  console.error('❌ ERROR: config.js no se cargó');
+  // Fallback
+  window.API_URL = window.location.hostname === 'localhost' 
     ? 'http://localhost:3000/api'
-    : 'https://gestion-clubes.onrender.com/api');
+    : 'https://gestion-clubes.onrender.com/api';
+}
 
 const token = localStorage.getItem("token");
 const rol = localStorage.getItem("rol");
 const esDistrital = rol?.toLowerCase() === "distrital";
+
+console.log('🔧 claseDetalle.js - API_URL:', window.API_URL);
+console.log('🔧 Token:', token ? 'Presente' : 'Ausente');
+console.log('🔧 Rol:', rol);
+console.log('🔧 Es distrital?', esDistrital);
+
+// ... el resto del código igual que antes ...
 
 console.log('🔧 ClaseDetalle config:', { API_URL, token, rol, esDistrital });
 

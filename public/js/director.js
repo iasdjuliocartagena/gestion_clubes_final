@@ -1,7 +1,20 @@
-import { API_URL } from "./config.js";
+
+const API_URL = window.API_URL || 
+  (window.location.hostname === 'localhost' 
+    ? 'http://localhost:3000/api'
+    : 'https://gestion-clubes.onrender.com/api');
 
 const token = localStorage.getItem("token");
 const rol = localStorage.getItem("rol");
+
+// Verificar autenticación
+if (!token) {
+  window.location.href = "/login.html";
+  throw new Error("No autenticado");
+}
+console.log('🎯 Director panel loaded, club_id:', clubId);
+
+// Resto de tu código director.js...
 
 const btnVolver = document.getElementById("btnVolver");
 const logoutBtn = document.getElementById("logoutBtn");

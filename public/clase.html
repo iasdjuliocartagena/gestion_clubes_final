@@ -2,6 +2,7 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Clase</title>
   <link rel="stylesheet" href="css/styles.css">
 </head>
@@ -68,7 +69,22 @@
 
 </div>
 
-<script type="module" src="js/claseDetalle.js"></script>
+<!-- SCRIPTS EN ORDEN CORRECTO -->
+<script src="/js/config.js"></script>
+<script src="/js/claseDetalle.js"></script>
+
+<script>
+  // Funciones globales para los botones
+  window.editarSeleccionado = function() {
+    // Tu código para editar
+    console.log('Editar seleccionado');
+  };
+  
+  window.eliminarSeleccionado = function() {
+    // Tu código para eliminar
+    console.log('Eliminar seleccionado');
+  };
+</script>
+
 </body>
 </html>
-

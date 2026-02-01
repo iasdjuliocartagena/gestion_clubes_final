@@ -2,6 +2,7 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Gestión Distrital | Club Conquistadores</title>
   <link rel="stylesheet" href="css/styles.css">
   <link href="https://fonts.googleapis.com/css2?family=Jaro:opsz@6..72&display=swap" rel="stylesheet">
@@ -22,17 +23,30 @@
   <div class="login-card">
     <form id="loginForm">
       <label>USUARIO</label>
-      <input type="text" id="user" required>
+      <input type="text" id="user" required placeholder="Ingresa tu usuario">
 
       <label>CONTRASEÑA</label>
-      <input type="password" id="password" required>
+      <input type="password" id="password" required placeholder="Ingresa tu contraseña">
 
       <button type="submit">INGRESAR</button>
     </form>
 
     <p id="error" class="error"></p>
+    
+    <div style="margin-top: 20px; font-size: 12px; color: #666; text-align: center;">
+      <p>🔗 URL del backend: <span id="apiUrl"></span></p>
+    </div>
   </div>
 
-  <script type="module" src="js/auth.js"></script>
+  <!-- SCRIPTS EN ORDEN CORRECTO -->
+  <script src="/js/config.js"></script>
+  <script src="/js/auth.js"></script>
+  
+  <script>
+    // Mostrar URL actual para debug
+    document.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('apiUrl').textContent = window.API_URL || 'No configurada';
+    });
+  </script>
 </body>
 </html>

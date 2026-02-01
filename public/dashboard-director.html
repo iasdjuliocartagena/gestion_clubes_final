@@ -2,6 +2,7 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Panel Director | Conquistadores</title>
   <link rel="stylesheet" href="css/styles.css">
   <link href="https://fonts.googleapis.com/css2?family=Jaro:opsz@6..72&display=swap" rel="stylesheet">
@@ -15,14 +16,24 @@
   <button id="logoutBtn" class="hidden">Cerrar sesión</button>
 </header>
 
-
   <main class="dashboard-content">
-
     <div class="classes-container" id="classesContainer">
       <!-- clases aquí -->
     </div>
   </main>
 
-  <script type="module" src="js/director.js"></script>
+  <!-- SCRIPTS EN ORDEN CORRECTO -->
+  <script src="/js/config.js"></script>
+  <script src="/js/director.js"></script>
+  
+  <script>
+    // Logout
+    document.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('logoutBtn')?.addEventListener('click', () => {
+        localStorage.clear();
+        window.location.href = "/login.html";
+      });
+    });
+  </script>
 </body>
 </html>

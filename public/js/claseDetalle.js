@@ -1,25 +1,48 @@
-import { API_URL } from "./config.js";
+// public/js/claseDetalle.js
 
-document.body.classList.add("animate-in");
+// Configuración API URL
+const API_URL = window.API_URL || 
+  (window.location.hostname === 'localhost' 
+    ? 'http://localhost:3000/api'
+    : 'https://gestion-clubes.onrender.com/api');
 
 const token = localStorage.getItem("token");
 const rol = localStorage.getItem("rol");
 const esDistrital = rol?.toLowerCase() === "distrital";
 
+console.log('🔧 ClaseDetalle config:', { API_URL, token, rol, esDistrital });
 
 let requisitos = [];
 let conquistadores = [];
 let progreso = [];
 let conquistadorSeleccionado = null;
 
+// Esperar a que el DOM esté listo
+document.addEventListener('DOMContentLoaded', async () => {
+  document.body.classList.add("animate-in");
+
+  // Verificar autenticación
+  if (!token) {
+    alert("Sesión expirada. Por favor, inicia sesión nuevamente.");
+    window.location.href = "/login.html";
+    return;
+  }
+
+  await inicializarAplicacion();
+  configurarEventos();
+});
+
 /* ========================= INIT ========================= */
-document.addEventListener("DOMContentLoaded", async () => {
+async function inicializarAplicacion() {
   const claseId = localStorage.getItem("clase_id");
   const claseNombre = localStorage.getItem("clase_nombre");
   const clubNombre = localStorage.getItem("club_nombre");
 
+  console.log('📋 Datos de inicialización:', { claseId, claseNombre, clubNombre });
+
   if (!claseId || !claseNombre || !clubNombre) {
     document.getElementById("tituloClase").textContent = "Clase no seleccionada";
+    console.error('❌ Faltan datos en localStorage');
     return;
   }
 
@@ -28,71 +51,102 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   // 🔒 BLOQUEO PARA DISTRITAL
   if (esDistrital) {
+    console.log('👁️ Modo distrital: solo lectura');
     document.getElementById("btnAdd")?.classList.add("hidden");
-    document.querySelector(".btn-editar")?.classList.add("hidden");
-    document.querySelector(".btn-eliminar")?.classList.add("hidden");
+    const btnEditar = document.querySelector(".btn-editar");
+    const btnEliminar = document.querySelector(".btn-eliminar");
+    
+    if (btnEditar) btnEditar.classList.add("hidden");
+    if (btnEliminar) btnEliminar.classList.add("hidden");
   }
 
   await cargarRequisitos(claseId);
   await cargarConquistadores();
   await cargarProgresoDeTodos();
   renderTabla();
-});
+}
 
 /* ========================= REQUISITOS ========================= */
 async function cargarRequisitos(claseId) {
-  const res = await fetch(`${API_URL}/requisitos/${claseId}`);
-  requisitos = await res.json();
+  try {
+    console.log(`📥 Cargando requisitos para clase ${claseId}...`);
+    const res = await fetch(`${API_URL}/requisitos/${claseId}`);
+    
+    if (!res.ok) {
+      throw new Error(`HTTP ${res.status}`);
+    }
+    
+    requisitos = await res.json();
+    console.log(`✅ ${requisitos.length} requisitos cargados`);
 
-  const ordenCategorias = [
-    "Generales",
-    "Descubrimiento espiritual",
-    "Sirviendo a los demás",
-    "Desarrollo de la amistad",
-    "Salud y aptitud física",
-    "Organización y liderazgo",
-    "Estudio de la naturaleza",
-    "Arte de acampar",
-    "Estilo de vida",
-  ];
+    const ordenCategorias = [
+      "Generales",
+      "Descubrimiento espiritual",
+      "Sirviendo a los demás",
+      "Desarrollo de la amistad",
+      "Salud y aptitud física",
+      "Organización y liderazgo",
+      "Estudio de la naturaleza",
+      "Arte de acampar",
+      "Estilo de vida",
+    ];
 
-  requisitos.sort((a, b) => {
-    if (a.tipo !== b.tipo) return a.tipo === "regular" ? -1 : 1;
-    const catA = ordenCategorias.indexOf(a.categoria);
-    const catB = ordenCategorias.indexOf(b.categoria);
-    if (catA !== catB) return catA - catB;
-    return a.orden - b.orden;
-  });
+    requisitos.sort((a, b) => {
+      if (a.tipo !== b.tipo) return a.tipo === "regular" ? -1 : 1;
+      const catA = ordenCategorias.indexOf(a.categoria);
+      const catB = ordenCategorias.indexOf(b.categoria);
+      if (catA !== catB) return catA - catB;
+      return a.orden - b.orden;
+    });
 
-  const thead = document.getElementById("thead");
-  thead.innerHTML = "<th>Conquistador</th>";
+    const thead = document.getElementById("thead");
+    thead.innerHTML = "<th>Conquistador</th>";
 
-  requisitos.forEach((req) => {
-    const th = document.createElement("th");
-    th.textContent = req.titulo;
-    if (req.tipo === "avanzada") th.classList.add("avanzada");
-    thead.appendChild(th);
-  });
+    requisitos.forEach((req) => {
+      const th = document.createElement("th");
+      th.textContent = req.titulo;
+      th.title = `${req.categoria} - ${req.tipo}`;
+      if (req.tipo === "avanzada") th.classList.add("avanzada");
+      thead.appendChild(th);
+    });
+  } catch (err) {
+    console.error('❌ Error cargando requisitos:', err);
+    alert("Error al cargar los requisitos de la clase");
+  }
 }
 
 /* ========================= CONQUISTADORES ========================= */
 async function cargarConquistadores() {
-  const clase = localStorage.getItem("clase_nombre");
-  console.log("TOKEN:", localStorage.getItem("token"));
-  const clubId = localStorage.getItem("club_id");
+  try {
+    const clase = localStorage.getItem("clase_nombre");
+    const clubId = localStorage.getItem("club_id");
 
-  const res = await fetch(
-    `${API_URL}/conquistadores/clase/${clase}?club_id=${clubId}`,
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
+    console.log(`📥 Cargando conquistadores para clase ${clase}, club ${clubId}...`);
+
+    const res = await fetch(
+      `${API_URL}/conquistadores/clase/${clase}?club_id=${clubId}`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+      }
+    );
+
+    if (!res.ok) {
+      throw new Error(`HTTP ${res.status}`);
     }
-  );
 
-  conquistadores = await res.json();
-
-  if (!Array.isArray(conquistadores)) {
+    conquistadores = await res.json();
+    
+    if (!Array.isArray(conquistadores)) {
+      console.warn('⚠️ Los conquistadores no son un array:', conquistadores);
+      conquistadores = [];
+    }
+    
+    console.log(`✅ ${conquistadores.length} conquistadores cargados`);
+  } catch (err) {
+    console.error('❌ Error cargando conquistadores:', err);
     conquistadores = [];
   }
 }
@@ -100,32 +154,68 @@ async function cargarConquistadores() {
 /* ========================= PROGRESO ========================= */
 async function cargarProgresoDeTodos() {
   progreso = [];
+  
+  if (conquistadores.length === 0) return;
 
-  await Promise.all(
-    conquistadores.map(async (c) => {
-      const res = await fetch(`${API_URL}/progreso/${c.id}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+  console.log('📥 Cargando progreso de todos los conquistadores...');
 
-      const data = await res.json();
+  try {
+    await Promise.all(
+      conquistadores.map(async (c) => {
+        try {
+          const res = await fetch(`${API_URL}/progreso/${c.id}`, {
+            headers: { 
+              Authorization: `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            },
+          });
 
-      if (!Array.isArray(data)) return;
+          if (!res.ok) return;
 
-      data.forEach((p) => {
-        progreso.push({
-          conquistador_id: String(c.id),
-          requisito_id: String(p.requisito_id),
-          cumplido: !!p.cumplido,
-        });
-      });
-    })
-  );
+          const data = await res.json();
+
+          if (Array.isArray(data)) {
+            data.forEach((p) => {
+              progreso.push({
+                conquistador_id: String(c.id),
+                requisito_id: String(p.requisito_id),
+                cumplido: !!p.cumplido,
+              });
+            });
+          }
+        } catch (err) {
+          console.warn(`⚠️ Error cargando progreso para ${c.nombre}:`, err);
+        }
+      })
+    );
+    
+    console.log(`✅ Progreso cargado para ${progreso.length} registros`);
+  } catch (err) {
+    console.error('❌ Error general cargando progreso:', err);
+  }
 }
 
 /* ========================= RENDER TABLA ========================= */
 function renderTabla() {
   const tbody = document.getElementById("tbody");
+  if (!tbody) {
+    console.error('❌ No se encontró tbody');
+    return;
+  }
+  
   tbody.innerHTML = "";
+
+  if (conquistadores.length === 0) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="${requisitos.length + 1}" style="text-align: center; padding: 40px;">
+          No hay conquistadores en esta clase
+          ${!esDistrital ? '<br><button onclick="abrirModalNuevo()" style="margin-top: 15px;">➕ Agregar conquistador</button>' : ''}
+        </td>
+      </tr>
+    `;
+    return;
+  }
 
   conquistadores.forEach((c) => {
     const tr = document.createElement("tr");
@@ -157,10 +247,11 @@ function renderTabla() {
 function crearCheckbox(conquistadorId, requisitoId) {
   const checkbox = document.createElement("input");
   checkbox.type = "checkbox";
+  checkbox.className = "requisito-checkbox";
 
   // 🚫 DISTRITAL = SOLO LECTURA
   if (esDistrital) {
-    checkbox.disabled = true; // ← CLAVE
+    checkbox.disabled = true;
   }
 
   checkbox.addEventListener("click", (e) => e.stopPropagation());
@@ -191,7 +282,10 @@ function crearCheckbox(conquistadorId, requisitoId) {
           }),
         });
 
-        if (!res.ok) throw new Error();
+        if (!res.ok) {
+          const errorData = await res.text();
+          throw new Error(`HTTP ${res.status}: ${errorData}`);
+        }
 
         const index = progreso.findIndex(
           (p) =>
@@ -210,10 +304,11 @@ function crearCheckbox(conquistadorId, requisitoId) {
         }
 
         actualizarPanel();
+        console.log('✅ Progreso actualizado:', { conquistadorId, requisitoId, cumplido: checkbox.checked });
       } catch (err) {
-        console.error(err);
+        console.error('❌ Error actualizando progreso:', err);
         checkbox.checked = !checkbox.checked;
-        alert("No se pudo actualizar el progreso");
+        alert("No se pudo actualizar el progreso. Intenta nuevamente.");
       }
     });
   }
@@ -231,6 +326,11 @@ function seleccionarConquistador(c) {
 /* ========================= PANEL ========================= */
 function actualizarPanel() {
   const panel = document.getElementById("panelAcciones");
+
+  if (!panel) {
+    console.warn('⚠️ No se encontró el panel de acciones');
+    return;
+  }
 
   if (!conquistadorSeleccionado) {
     panel.classList.add("hidden");
@@ -263,182 +363,216 @@ function actualizarPanel() {
   const porcentajeAvanzada =
     Math.round((completadosAvanzada / totalAvanzada) * 100) || 0;
 
-  document.getElementById("porcentaje").innerHTML = `
-    Clase regular: ${porcentajeRegular}%<br>
-    Clase avanzada: ${porcentajeAvanzada}%
-  `;
+  const porcentajeElement = document.getElementById("porcentaje");
+  if (porcentajeElement) {
+    porcentajeElement.innerHTML = `
+      Clase regular: ${porcentajeRegular}%<br>
+      Clase avanzada: ${porcentajeAvanzada}%
+    `;
+  }
 }
 
-/* ========================= EDITAR ========================= */
-window.editarSeleccionado = function () {
-  if (!conquistadorSeleccionado) {
-    alert("Selecciona un conquistador primero");
-    return;
+/* ========================= MODAL ========================= */
+function configurarEventos() {
+  const modal = document.getElementById("modalConquistador");
+  const inputNombre = document.getElementById("inputNombre");
+  const btnGuardar = document.getElementById("btnGuardar");
+  const btnCancelar = document.getElementById("btnCancelar");
+  const btnAdd = document.getElementById("btnAdd");
+  const btnVolver = document.getElementById("btnVolver");
+
+  let modoEdicion = false;
+
+  // 🚫 Esconder botón de añadir si es distrital
+  if (esDistrital && btnAdd) {
+    btnAdd.style.display = 'none';
   }
 
-  localStorage.setItem(
-    "conquistador_editar",
-    JSON.stringify(conquistadorSeleccionado)
-  );
-
-  document.getElementById("modalEditar")?.classList.remove("hidden");
-};
-
-/* ========================= ELIMINAR ========================= */
-window.eliminarSeleccionado = async function () {
-  if (!conquistadorSeleccionado) {
-    alert("Selecciona un conquistador primero");
-    return;
+  /* ---------- ABRIR MODAL ---------- */
+  function abrirModal(nombre = "") {
+    if (!modal || !inputNombre) return;
+    
+    inputNombre.value = nombre;
+    modal.classList.remove("hidden");
+    inputNombre.focus();
   }
 
-  const ok = confirm(
-    `¿Eliminar a ${conquistadorSeleccionado.nombre}?`
-  );
-  if (!ok) return;
+  /* ---------- CERRAR MODAL ---------- */
+  function cerrarModal() {
+    if (!modal || !inputNombre) return;
+    
+    modal.classList.add("hidden");
+    inputNombre.value = "";
+    modoEdicion = false;
+  }
 
-  try {
-    const res = await fetch(
-      `${API_URL}/conquistadores/${conquistadorSeleccionado.id}`,
-      {
-        method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` },
-      }
+  /* ---------- ABRIR MODAL NUEVO ---------- */
+  window.abrirModalNuevo = function() {
+    if (esDistrital) return;
+    
+    modoEdicion = false;
+    const modalTitulo = document.getElementById("modalTitulo");
+    if (modalTitulo) {
+      modalTitulo.textContent = "Nuevo Conquistador";
+    }
+    abrirModal();
+  };
+
+  /* ---------- EDITAR ---------- */
+  window.editarSeleccionado = function () {
+    if (esDistrital) return;
+    
+    if (!conquistadorSeleccionado) {
+      alert("Selecciona un conquistador primero");
+      return;
+    }
+
+    modoEdicion = true;
+    const modalTitulo = document.getElementById("modalTitulo");
+    if (modalTitulo) {
+      modalTitulo.textContent = "Editar Conquistador";
+    }
+    abrirModal(conquistadorSeleccionado.nombre);
+  };
+
+  /* ---------- ELIMINAR ---------- */
+  window.eliminarSeleccionado = async function () {
+    if (esDistrital) return;
+    
+    if (!conquistadorSeleccionado) {
+      alert("Selecciona un conquistador primero");
+      return;
+    }
+
+    const ok = confirm(
+      `¿Eliminar a ${conquistadorSeleccionado.nombre}? Esta acción no se puede deshacer.`
     );
+    if (!ok) return;
 
-    if (!res.ok) throw new Error("Error al eliminar");
-
-    conquistadores = conquistadores.filter(
-      (c) => c.id !== conquistadorSeleccionado.id
-    );
-
-    progreso = progreso.filter(
-      (p) => p.conquistador_id !== String(conquistadorSeleccionado.id)
-    );
-
-    conquistadorSeleccionado = null;
-    renderTabla();
-    actualizarPanel();
-  } catch (err) {
-    console.error(err);
-    alert("No se pudo eliminar");
-  }
-};
-
-/* ========================= VOLVER ========================= */
-document.getElementById("btnVolver").addEventListener("click", () => {
-  window.history.back();
-});
-
-/* =========================
-   MODAL (AÑADIR / EDITAR)
-========================= */
-
-const modal = document.getElementById("modalConquistador");
-const inputNombre = document.getElementById("inputNombre");
-const btnGuardar = document.getElementById("btnGuardar");
-const btnCancelar = document.getElementById("btnCancelar");
-const btnAdd = document.getElementById("btnAdd");
-
-let modoEdicion = false;
-
-/* ---------- ABRIR MODAL ---------- */
-function abrirModal(nombre = "") {
-  inputNombre.value = nombre;
-  modal.classList.remove("hidden");
-  inputNombre.focus();
-}
-
-/* ---------- CERRAR MODAL ---------- */
-function cerrarModal() {
-  modal.classList.add("hidden");
-  inputNombre.value = "";
-  modoEdicion = false;
-}
-
-/* =========================
-   AÑADIR
-========================= */
-btnAdd.addEventListener("click", () => {
-  modoEdicion = false;
-  document.getElementById("modalTitulo").textContent =
-    "Nuevo Conquistador";
-  abrirModal();
-});
-
-/* =========================
-   EDITAR
-========================= */
-window.editarSeleccionado = function () {
-  if (!conquistadorSeleccionado) {
-    alert("Selecciona un conquistador primero");
-    return;
-  }
-
-  modoEdicion = true;
-  document.getElementById("modalTitulo").textContent =
-    "Editar Conquistador";
-
-  abrirModal(conquistadorSeleccionado.nombre);
-};
-
-/* =========================
-   GUARDAR (POST / PUT)
-========================= */
-btnGuardar.addEventListener("click", async () => {
-  const nombre = inputNombre.value.trim();
-  if (!nombre) {
-    alert("Escribe un nombre");
-    return;
-  }
-
-  try {
-    let res;
-
-    if (modoEdicion) {
-      // ✏️ EDITAR
-      res = await fetch(
+    try {
+      const res = await fetch(
         `${API_URL}/conquistadores/${conquistadorSeleccionado.id}`,
         {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
+          method: "DELETE",
+          headers: { 
             Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json'
           },
-          body: JSON.stringify({ nombre }),
         }
       );
 
-      if (!res.ok) throw new Error();
+      if (!res.ok) {
+        const errorData = await res.text();
+        throw new Error(`HTTP ${res.status}: ${errorData}`);
+      }
 
-      conquistadorSeleccionado.nombre = nombre;
-    } else {
-      // ➕ CREAR
-      res = await fetch(`${API_URL}/conquistadores`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          nombre,
-          clase: localStorage.getItem("clase_nombre"),
-        }),
-      });
+      conquistadores = conquistadores.filter(
+        (c) => c.id !== conquistadorSeleccionado.id
+      );
 
-      const nuevo = await res.json();
-      conquistadores.push(nuevo);
+      progreso = progreso.filter(
+        (p) => p.conquistador_id !== String(conquistadorSeleccionado.id)
+      );
+
+      conquistadorSeleccionado = null;
+      renderTabla();
+      actualizarPanel();
+      
+      console.log('✅ Conquistador eliminado');
+    } catch (err) {
+      console.error('❌ Error eliminando:', err);
+      alert("No se pudo eliminar el conquistador. Intenta nuevamente.");
     }
+  };
 
-    cerrarModal();
-    renderTabla();
-    actualizarPanel();
-  } catch (err) {
-    console.error(err);
-    alert("No se pudo guardar");
+  /* ---------- GUARDAR ---------- */
+  if (btnGuardar) {
+    btnGuardar.addEventListener("click", async () => {
+      if (!inputNombre) return;
+      
+      const nombre = inputNombre.value.trim();
+      if (!nombre) {
+        alert("Escribe un nombre");
+        return;
+      }
+
+      try {
+        let res;
+
+        if (modoEdicion && conquistadorSeleccionado) {
+          // ✏️ EDITAR
+          res = await fetch(
+            `${API_URL}/conquistadores/${conquistadorSeleccionado.id}`,
+            {
+              method: "PUT",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`,
+              },
+              body: JSON.stringify({ nombre }),
+            }
+          );
+
+          if (!res.ok) throw new Error();
+
+          conquistadorSeleccionado.nombre = nombre;
+          console.log('✅ Conquistador editado:', conquistadorSeleccionado);
+        } else {
+          // ➕ CREAR
+          const clase = localStorage.getItem("clase_nombre");
+          const clubId = localStorage.getItem("club_id");
+          
+          res = await fetch(`${API_URL}/conquistadores`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({
+              nombre,
+              clase: clase,
+              club_id: clubId
+            }),
+          });
+
+          if (!res.ok) throw new Error();
+
+          const nuevo = await res.json();
+          conquistadores.push(nuevo);
+          console.log('✅ Conquistador creado:', nuevo);
+        }
+
+        cerrarModal();
+        renderTabla();
+        actualizarPanel();
+      } catch (err) {
+        console.error('❌ Error guardando:', err);
+        alert("No se pudo guardar. Verifica tu conexión e intenta nuevamente.");
+      }
+    });
   }
-});
 
-/* =========================
-   CANCELAR
-========================= */
-btnCancelar.addEventListener("click", cerrarModal);
+  /* ---------- CANCELAR ---------- */
+  if (btnCancelar) {
+    btnCancelar.addEventListener("click", cerrarModal);
+  }
+
+  /* ---------- BOTÓN AÑADIR ---------- */
+  if (btnAdd && !esDistrital) {
+    btnAdd.addEventListener("click", window.abrirModalNuevo);
+  }
+
+  /* ---------- VOLVER ---------- */
+  if (btnVolver) {
+    btnVolver.addEventListener("click", () => {
+      window.history.back();
+    });
+  }
+
+  // Cerrar modal con ESC
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && modal && !modal.classList.contains('hidden')) {
+      cerrarModal();
+    }
+  });
+}

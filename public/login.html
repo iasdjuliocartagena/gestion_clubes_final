@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Gestión Distrital | Club Conquistadores</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <link href="https://fonts.googleapis.com/css2?family=Jaro:opsz@6..72&display=swap" rel="stylesheet">
+</head>
+<body class="login-body">
+
+  <!-- HEADER -->
+  <header class="login-header">
+    <img src="img/logo.png" class="logo left" alt="Logo">
+    <h1>
+      GESTIÓN DISTRITAL<br>
+      <span>CLUB <b>CONQUISTADORES</b></span>
+    </h1>
+    <img src="img/logo.png" class="logo right" alt="Logo">
+  </header>
+
+  <!-- LOGIN CARD -->
+  <div class="login-card">
+    <form id="loginForm">
+      <label>USUARIO</label>
+      <input type="text" id="user" required>
+
+      <label>CONTRASEÑA</label>
+      <input type="password" id="password" required>
+
+      <button type="submit">INGRESAR</button>
+    </form>
+
+    <p id="error" class="error"></p>
+  </div>
+
+  <script type="module" src="js/auth.js"></script>
+</body>
+</html>

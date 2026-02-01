@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Clase</title>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+
+<body>
+
+<!-- ======================
+     MODAL CONQUISTADOR
+====================== -->
+<div id="modalConquistador" class="modal hidden">
+  <div class="modal-content">
+    <h3 id="modalTitulo">Nuevo Conquistador</h3>
+    <input type="text" id="inputNombre" placeholder="Nombre del conquistador" />
+    <div class="modal-actions">
+      <button id="btnGuardar">Guardar</button>
+      <button id="btnCancelar">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ======================
+     CONTENEDOR PRINCIPAL
+====================== -->
+<div class="clase-container">
+
+  <!-- HEADER -->
+  <header class="clase-header">
+    <button id="btnVolver" class="btn-volver">← Volver</button>
+    <h2 id="tituloClase">CLASE – CLUB</h2>
+    <button id="btnAdd">➕ Añadir conquistador</button>
+  </header>
+
+  <!-- ======================
+       PANEL SUPERIOR
+====================== -->
+<div id="panelAcciones" class="panel-acciones hidden">
+  <div class="panel-info">
+    <h3 id="nombreSeleccionado">Conquistador</h3>
+    <p>
+      Progreso:
+      <strong id="porcentaje">Clase regular: 0%<br>Clase avanzada: 0%</strong>
+    </p>
+  </div>
+  <div class="panel-botones">
+    <button class="btn-editar" onclick="editarSeleccionado()">✏️ Editar</button>
+    <button class="btn-eliminar" onclick="eliminarSeleccionado()">🗑️ Eliminar</button>
+  </div>
+</div>
+
+  <!-- ======================
+       TABLA
+====================== -->
+  <div class="tabla-wrapper">
+    <table id="tabla">
+      <thead>
+        <tr id="thead">
+          <th>Conquistador</th>
+        </tr>
+      </thead>
+      <tbody id="tbody">
+      </tbody>
+    </table>
+  </div>
+
+</div>
+
+<script type="module" src="js/claseDetalle.js"></script>
+</body>
+</html>
+

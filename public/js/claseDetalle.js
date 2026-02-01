@@ -1,34 +1,43 @@
-// claseDetalle.js
+// claseDetalle.js - VERSIÓN FINAL COMPLETA
+// ============================================
 
-// NO declarar API_URL aquí, usar window.API_URL
+console.log('🚀 claseDetalle.js cargado');
+
+// 🔧 VERIFICAR CONFIGURACIÓN
 if (!window.API_URL) {
-  console.error('❌ ERROR: config.js no se cargó');
-  // Fallback
-  window.API_URL = window.location.hostname === 'localhost' 
+  console.warn('⚠️ config.js no se cargó, usando fallback');
+  window.API_URL = window.location.hostname === 'localhost' || 
+                   window.location.hostname === '127.0.0.1'
     ? 'http://localhost:3000/api'
     : 'https://gestion-clubes.onrender.com/api';
 }
 
+// OBTENER DATOS DE LOCALSTORAGE
 const token = localStorage.getItem("token");
-const rol = localStorage.getItem("rol");
+const rol = localStorage.getItem("rol") || "director";
 const esDistrital = rol?.toLowerCase() === "distrital";
+const modo = localStorage.getItem("modo");
+const esDistritalModoLectura = (esDistrital && modo === "lectura");
 
-console.log('🔧 claseDetalle.js - API_URL:', window.API_URL);
-console.log('🔧 Token:', token ? 'Presente' : 'Ausente');
-console.log('🔧 Rol:', rol);
-console.log('🔧 Es distrital?', esDistrital);
-
-// ... el resto del código igual que antes ...
-
-console.log('🔧 ClaseDetalle config:', { API_URL, token, rol, esDistrital });
+console.log('🔧 claseDetalle.js - Config:', {
+  API_URL: window.API_URL,
+  token: token ? 'Presente' : 'Ausente',
+  rol: rol,
+  esDistrital: esDistrital,
+  modo: modo,
+  esDistritalModoLectura: esDistritalModoLectura
+});
 
 let requisitos = [];
 let conquistadores = [];
 let progreso = [];
 let conquistadorSeleccionado = null;
 
-// Esperar a que el DOM esté listo
-document.addEventListener('DOMContentLoaded', async () => {
+// ============================================
+// 📋 INICIALIZAR APLICACIÓN
+// ============================================
+document.addEventListener('DOMContentLoaded', async function() {
+  console.log('✅ DOM cargado para claseDetalle');
   document.body.classList.add("animate-in");
 
   // Verificar autenticación
@@ -46,44 +55,144 @@ document.addEventListener('DOMContentLoaded', async () => {
 async function inicializarAplicacion() {
   const claseId = localStorage.getItem("clase_id");
   const claseNombre = localStorage.getItem("clase_nombre");
-  const clubNombre = localStorage.getItem("club_nombre");
+  let clubNombre = localStorage.getItem("club_nombre");
+  
+  console.log('📋 Datos de inicialización:', { 
+    claseId, 
+    claseNombre, 
+    clubNombre,
+    clubId: localStorage.getItem("club_id")
+  });
 
-  console.log('📋 Datos de inicialización:', { claseId, claseNombre, clubNombre });
-
-  if (!claseId || !claseNombre || !clubNombre) {
-    document.getElementById("tituloClase").textContent = "Clase no seleccionada";
-    console.error('❌ Faltan datos en localStorage');
+  // Validación de datos críticos
+  if (!claseId || !claseNombre) {
+    console.error('❌ Faltan datos críticos en localStorage');
+    
+    // Mostrar mensaje amigable
+    const tituloClase = document.getElementById("tituloClase");
+    if (tituloClase) {
+      tituloClase.textContent = "Clase no seleccionada";
+      tituloClase.style.color = "#ff6b6b";
+    }
+    
+    // Agregar botón para volver
+    const claseContainer = document.querySelector('.clase-container');
+    if (claseContainer) {
+      const errorDiv = document.createElement('div');
+      errorDiv.style.cssText = `
+        text-align: center;
+        padding: 40px;
+        color: white;
+        background: rgba(0,0,0,0.8);
+        margin: 20px;
+        border-radius: 10px;
+      `;
+      errorDiv.innerHTML = `
+        <h3 style="color: #ff6b6b; margin-bottom: 15px;">⚠️ Error al cargar la clase</h3>
+        <p style="margin-bottom: 20px;">No se encontraron los datos necesarios.</p>
+        <button onclick="window.history.back()" style="padding: 10px 20px; background: #7CFF8C; border: none; cursor: pointer; margin: 5px;">
+          ← Volver
+        </button>
+        <button onclick="window.location.href='/dashboard-director.html'" style="padding: 10px 20px; background: #2f80ed; border: none; cursor: pointer; margin: 5px; color: white;">
+          Ir a mi club
+        </button>
+      `;
+      claseContainer.appendChild(errorDiv);
+    }
+    
     return;
   }
 
-  document.getElementById("tituloClase").textContent =
-    `${claseNombre} – ${clubNombre}`;
-
-  // 🔒 BLOQUEO PARA DISTRITAL
-  if (esDistrital) {
-    console.log('👁️ Modo distrital: solo lectura');
-    document.getElementById("btnAdd")?.classList.add("hidden");
-    const btnEditar = document.querySelector(".btn-editar");
-    const btnEliminar = document.querySelector(".btn-eliminar");
-    
-    if (btnEditar) btnEditar.classList.add("hidden");
-    if (btnEliminar) btnEliminar.classList.add("hidden");
+  // Si no hay clubNombre, intentar obtenerlo del club_id
+  if (!clubNombre && localStorage.getItem("club_id")) {
+    console.log('🔍 Obteniendo nombre del club...');
+    try {
+      const clubId = localStorage.getItem("club_id");
+      const response = await fetch(`${window.API_URL}/clubs/${clubId}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (response.ok) {
+        const clubData = await response.json();
+        clubNombre = clubData.nombre;
+        localStorage.setItem("club_nombre", clubNombre);
+        console.log('✅ Club nombre obtenido:', clubNombre);
+      }
+    } catch (error) {
+      console.warn('⚠️ No se pudo obtener el nombre del club:', error);
+      clubNombre = "Mi Club";
+      localStorage.setItem("club_nombre", clubNombre);
+    }
+  } else if (!clubNombre) {
+    // Si aún no hay, usar valor por defecto
+    clubNombre = "Mi Club";
+    localStorage.setItem("club_nombre", clubNombre);
   }
 
+  // Actualizar título
+  const tituloClase = document.getElementById("tituloClase");
+  if (tituloClase) {
+    if (esDistritalModoLectura) {
+      tituloClase.textContent = `${claseNombre} – ${clubNombre} (LECTURA)`;
+      tituloClase.style.color = '#7CFF8C';
+    } else {
+      tituloClase.textContent = `${claseNombre} – ${clubNombre}`;
+    }
+  }
+
+  // 🔒 BLOQUEO PARA DISTRITAL EN MODO LECTURA
+  const btnAdd = document.getElementById("btnAdd");
+  if (btnAdd && esDistritalModoLectura) {
+    btnAdd.style.display = 'none';
+    console.log('👁️ Botón añadir oculto para modo lectura');
+  }
+
+  // Cargar datos
+  console.log('📥 Cargando datos...');
   await cargarRequisitos(claseId);
-  await cargarConquistadores();
+  await cargarConquistadores(claseNombre);
   await cargarProgresoDeTodos();
   renderTabla();
+  
+  // Si es modo lectura, agregar indicador
+  if (esDistritalModoLectura) {
+    const header = document.querySelector('.clase-header');
+    if (header) {
+      const infoBadge = document.createElement('div');
+      infoBadge.style.cssText = `
+        background: rgba(124, 255, 140, 0.2);
+        color: #7CFF8C;
+        border: 1px solid #7CFF8C;
+        padding: 5px 10px;
+        border-radius: 4px;
+        font-size: 0.8rem;
+        margin-left: 10px;
+        display: inline-block;
+      `;
+      infoBadge.textContent = 'MODO LECTURA';
+      header.appendChild(infoBadge);
+    }
+  }
 }
 
 /* ========================= REQUISITOS ========================= */
 async function cargarRequisitos(claseId) {
   try {
     console.log(`📥 Cargando requisitos para clase ${claseId}...`);
-    const res = await fetch(`${API_URL}/requisitos/${claseId}`);
+    const res = await fetch(`${window.API_URL}/requisitos/${claseId}`, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    });
+    
+    console.log('📤 Response status requisitos:', res.status);
     
     if (!res.ok) {
-      throw new Error(`HTTP ${res.status}`);
+      throw new Error(`HTTP ${res.status}: No se pudieron cargar los requisitos`);
     }
     
     requisitos = await res.json();
@@ -110,6 +219,11 @@ async function cargarRequisitos(claseId) {
     });
 
     const thead = document.getElementById("thead");
+    if (!thead) {
+      console.error('❌ No se encontró thead');
+      return;
+    }
+    
     thead.innerHTML = "<th>Conquistador</th>";
 
     requisitos.forEach((req) => {
@@ -121,20 +235,30 @@ async function cargarRequisitos(claseId) {
     });
   } catch (err) {
     console.error('❌ Error cargando requisitos:', err);
-    alert("Error al cargar los requisitos de la clase");
+    
+    // Mostrar error en la tabla
+    const thead = document.getElementById("thead");
+    if (thead) {
+      thead.innerHTML = "<th>Conquistador</th><th colspan='10' style='color: #ff6b6b;'>Error cargando requisitos</th>";
+    }
   }
 }
 
 /* ========================= CONQUISTADORES ========================= */
-async function cargarConquistadores() {
+async function cargarConquistadores(claseNombre) {
   try {
-    const clase = localStorage.getItem("clase_nombre");
     const clubId = localStorage.getItem("club_id");
+    
+    if (!clubId) {
+      console.error('❌ No hay club_id en localStorage');
+      conquistadores = [];
+      return;
+    }
 
-    console.log(`📥 Cargando conquistadores para clase ${clase}, club ${clubId}...`);
+    console.log(`📥 Cargando conquistadores para clase ${claseNombre}, club ${clubId}...`);
 
     const res = await fetch(
-      `${API_URL}/conquistadores/clase/${clase}?club_id=${clubId}`,
+      `${window.API_URL}/conquistadores/clase/${claseNombre}?club_id=${clubId}`,
       {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -143,8 +267,10 @@ async function cargarConquistadores() {
       }
     );
 
+    console.log('📤 Response status conquistadores:', res.status);
+
     if (!res.ok) {
-      throw new Error(`HTTP ${res.status}`);
+      throw new Error(`HTTP ${res.status}: No se pudieron cargar los conquistadores`);
     }
 
     conquistadores = await res.json();
@@ -173,7 +299,7 @@ async function cargarProgresoDeTodos() {
     await Promise.all(
       conquistadores.map(async (c) => {
         try {
-          const res = await fetch(`${API_URL}/progreso/${c.id}`, {
+          const res = await fetch(`${window.API_URL}/progreso/${c.id}`, {
             headers: { 
               Authorization: `Bearer ${token}`,
               'Content-Type': 'application/json'
@@ -218,9 +344,9 @@ function renderTabla() {
   if (conquistadores.length === 0) {
     tbody.innerHTML = `
       <tr>
-        <td colspan="${requisitos.length + 1}" style="text-align: center; padding: 40px;">
+        <td colspan="${requisitos.length + 1}" style="text-align: center; padding: 40px; color: white; background: rgba(0,0,0,0.7);">
           No hay conquistadores en esta clase
-          ${!esDistrital ? '<br><button onclick="abrirModalNuevo()" style="margin-top: 15px;">➕ Agregar conquistador</button>' : ''}
+          ${!esDistritalModoLectura ? '<br><button onclick="window.abrirModalNuevo()" style="margin-top: 15px; padding: 10px 20px; background: #7CFF8C; border: none; cursor: pointer;">➕ Agregar conquistador</button>' : ''}
         </td>
       </tr>
     `;
@@ -238,6 +364,8 @@ function renderTabla() {
 
     const tdNombre = document.createElement("td");
     tdNombre.textContent = c.nombre;
+    tdNombre.style.fontWeight = "bold";
+    tdNombre.style.color = "#333";
     tr.appendChild(tdNombre);
 
     requisitos.forEach((req) => {
@@ -258,10 +386,17 @@ function crearCheckbox(conquistadorId, requisitoId) {
   const checkbox = document.createElement("input");
   checkbox.type = "checkbox";
   checkbox.className = "requisito-checkbox";
+  checkbox.style.cssText = `
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+  `;
 
-  // 🚫 DISTRITAL = SOLO LECTURA
-  if (esDistrital) {
+  // 🚫 DISTRITAL MODO LECTURA = SOLO LECTURA
+  if (esDistritalModoLectura) {
     checkbox.disabled = true;
+    checkbox.style.cursor = "not-allowed";
+    checkbox.style.opacity = "0.7";
   }
 
   checkbox.addEventListener("click", (e) => e.stopPropagation());
@@ -275,11 +410,11 @@ function crearCheckbox(conquistadorId, requisitoId) {
 
   checkbox.checked = !!existe;
 
-  // ❌ NO listener change para distrital
-  if (!esDistrital) {
+  // ❌ NO listener change para distrital modo lectura
+  if (!esDistritalModoLectura) {
     checkbox.addEventListener("change", async () => {
       try {
-        const res = await fetch(`${API_URL}/progreso`, {
+        const res = await fetch(`${window.API_URL}/progreso`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -376,9 +511,21 @@ function actualizarPanel() {
   const porcentajeElement = document.getElementById("porcentaje");
   if (porcentajeElement) {
     porcentajeElement.innerHTML = `
-      Clase regular: ${porcentajeRegular}%<br>
-      Clase avanzada: ${porcentajeAvanzada}%
+      <span style="color: #2f80ed;">Clase regular: ${porcentajeRegular}%</span><br>
+      <span style="color: #eb0000;">Clase avanzada: ${porcentajeAvanzada}%</span>
     `;
+  }
+  
+  // Mostrar/ocultar botones de edición según modo
+  const btnEditar = document.querySelector(".btn-editar");
+  const btnEliminar = document.querySelector(".btn-eliminar");
+  
+  if (esDistritalModoLectura) {
+    if (btnEditar) btnEditar.style.display = 'none';
+    if (btnEliminar) btnEliminar.style.display = 'none';
+  } else {
+    if (btnEditar) btnEditar.style.display = 'inline-block';
+    if (btnEliminar) btnEliminar.style.display = 'inline-block';
   }
 }
 
@@ -393,8 +540,8 @@ function configurarEventos() {
 
   let modoEdicion = false;
 
-  // 🚫 Esconder botón de añadir si es distrital
-  if (esDistrital && btnAdd) {
+  // 🚫 Esconder botón de añadir si es distrital modo lectura
+  if (esDistritalModoLectura && btnAdd) {
     btnAdd.style.display = 'none';
   }
 
@@ -418,7 +565,10 @@ function configurarEventos() {
 
   /* ---------- ABRIR MODAL NUEVO ---------- */
   window.abrirModalNuevo = function() {
-    if (esDistrital) return;
+    if (esDistritalModoLectura) {
+      alert('❌ No tienes permisos para añadir conquistadores en modo lectura');
+      return;
+    }
     
     modoEdicion = false;
     const modalTitulo = document.getElementById("modalTitulo");
@@ -430,7 +580,10 @@ function configurarEventos() {
 
   /* ---------- EDITAR ---------- */
   window.editarSeleccionado = function () {
-    if (esDistrital) return;
+    if (esDistritalModoLectura) {
+      alert('❌ No tienes permisos para editar en modo lectura');
+      return;
+    }
     
     if (!conquistadorSeleccionado) {
       alert("Selecciona un conquistador primero");
@@ -447,7 +600,10 @@ function configurarEventos() {
 
   /* ---------- ELIMINAR ---------- */
   window.eliminarSeleccionado = async function () {
-    if (esDistrital) return;
+    if (esDistritalModoLectura) {
+      alert('❌ No tienes permisos para eliminar en modo lectura');
+      return;
+    }
     
     if (!conquistadorSeleccionado) {
       alert("Selecciona un conquistador primero");
@@ -461,7 +617,7 @@ function configurarEventos() {
 
     try {
       const res = await fetch(
-        `${API_URL}/conquistadores/${conquistadorSeleccionado.id}`,
+        `${window.API_URL}/conquistadores/${conquistadorSeleccionado.id}`,
         {
           method: "DELETE",
           headers: { 
@@ -512,7 +668,7 @@ function configurarEventos() {
         if (modoEdicion && conquistadorSeleccionado) {
           // ✏️ EDITAR
           res = await fetch(
-            `${API_URL}/conquistadores/${conquistadorSeleccionado.id}`,
+            `${window.API_URL}/conquistadores/${conquistadorSeleccionado.id}`,
             {
               method: "PUT",
               headers: {
@@ -532,7 +688,7 @@ function configurarEventos() {
           const clase = localStorage.getItem("clase_nombre");
           const clubId = localStorage.getItem("club_id");
           
-          res = await fetch(`${API_URL}/conquistadores`, {
+          res = await fetch(`${window.API_URL}/conquistadores`, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
@@ -568,14 +724,20 @@ function configurarEventos() {
   }
 
   /* ---------- BOTÓN AÑADIR ---------- */
-  if (btnAdd && !esDistrital) {
+  if (btnAdd && !esDistritalModoLectura) {
     btnAdd.addEventListener("click", window.abrirModalNuevo);
   }
 
   /* ---------- VOLVER ---------- */
   if (btnVolver) {
     btnVolver.addEventListener("click", () => {
-      window.history.back();
+      if (esDistritalModoLectura) {
+        // Distrital en modo lectura: volver a lista de clubes
+        window.location.href = "/dashboard-distrital.html";
+      } else {
+        // Director normal: volver a clases
+        window.history.back();
+      }
     });
   }
 
@@ -586,3 +748,34 @@ function configurarEventos() {
     }
   });
 }
+
+// ============================================
+// 🛠️ FUNCIONES DE DEBUG
+// ============================================
+
+window.mostrarDatosDebug = function() {
+  console.log('📊 DATOS DEBUG:', {
+    requisitos: requisitos.length,
+    conquistadores: conquistadores.length,
+    progreso: progreso.length,
+    seleccionado: conquistadorSeleccionado,
+    localStorage: {
+      clase_id: localStorage.getItem("clase_id"),
+      clase_nombre: localStorage.getItem("clase_nombre"),
+      club_id: localStorage.getItem("club_id"),
+      club_nombre: localStorage.getItem("club_nombre"),
+      token: localStorage.getItem("token") ? "Presente" : "Ausente",
+      rol: localStorage.getItem("rol"),
+      modo: localStorage.getItem("modo")
+    }
+  });
+};
+
+window.limpiarCacheClase = function() {
+  localStorage.removeItem("clase_id");
+  localStorage.removeItem("clase_nombre");
+  console.log('🧹 Cache de clase limpiado');
+  alert('Cache limpiado. Recarga la página.');
+};
+
+console.log('✅ claseDetalle.js inicializado correctamente');

@@ -89,20 +89,30 @@ async function cargarClubes() {
       div.style.animationDelay = `${index * 0.07}s`;
 
       // 👉 CLICK EN CLUB
-      div.addEventListener("click", () => {
-        console.log('🎯 Club seleccionado:', club);
-        document.body.classList.add("page-exit");
+// En distrital.js, actualiza el evento click del club:
+    div.addEventListener("click", () => {
+      console.log('🎯 Club seleccionado:', club);
+      document.body.classList.add("page-exit");
 
-        setTimeout(() => {
-          localStorage.setItem("club_id", club.id);
-          localStorage.setItem("club_nombre", club.nombre || `Club ${club.id}`);
-          
-          // 🔑 CLAVE: Modo lectura para distrital
-          localStorage.setItem("modo", "lectura");
+      setTimeout(() => {
+        // GUARDAR TODOS LOS DATOS NECESARIOS
+        localStorage.setItem("club_id", club.id);
+        localStorage.setItem("club_nombre", club.nombre || `Club ${club.id}`);
+        
+        // 🔑 IMPORTANTE: Guardar el rol y modo para distrital
+        localStorage.setItem("modo", "lectura");
+        // El rol ya está guardado desde el login
+        
+        console.log('🔑 Datos guardados para director panel:', {
+          club_id: club.id,
+          club_nombre: club.nombre,
+          modo: 'lectura',
+          rol: localStorage.getItem("rol")
+        });
 
-          window.location.href = "/dashboard-director.html";
-        }, 300);
-      });
+        window.location.href = "/dashboard-director.html";
+      }, 300);
+    });
 
       container.appendChild(div);
     });

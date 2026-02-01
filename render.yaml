@@ -1,0 +1,11 @@
+# render.yaml
+services:
+  - type: web
+    name: gestion-clubes
+    env: node
+    plan: free
+    buildCommand: npm install
+    startCommand: node src/server.js
+    envVars:
+      - key: NODE_ENV
+        value: production

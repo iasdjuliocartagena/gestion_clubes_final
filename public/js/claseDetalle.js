@@ -729,14 +729,18 @@ function configurarEventos() {
   }
 
   /* ---------- VOLVER ---------- */
+/* ---------- VOLVER ---------- */
   if (btnVolver) {
     btnVolver.addEventListener("click", () => {
       if (esDistritalModoLectura) {
         // Distrital en modo lectura: volver a lista de clubes
         window.location.href = "/dashboard-distrital.html";
       } else {
-        // Director normal: volver a clases
-        window.history.back();
+        // Director normal: NO usar history.back(), mejor ir directamente
+        document.body.classList.add("page-exit");
+        setTimeout(() => {
+          window.location.href = "/dashboard-director.html";
+        }, 300);
       }
     });
   }

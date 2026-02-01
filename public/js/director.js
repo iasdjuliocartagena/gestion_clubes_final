@@ -1,4 +1,4 @@
-// director.js - VERSIÓN CORREGIDA CON ESTILOS ORIGINALES
+// director.js - VERSIÓN FINAL CON FIX DE NAVEGACIÓN
 // ============================================
 
 console.log('🚀 director.js cargado');
@@ -51,10 +51,10 @@ if (esDistritalModoLectura) {
 console.log('✅ Director panel cargado, club_id:', clubId);
 
 // ============================================
-// 📋 INICIALIZAR PANEL
+// 📋 FUNCIÓN PARA INICIALIZAR PANEL (REUTILIZABLE)
 // ============================================
-document.addEventListener('DOMContentLoaded', async function() {
-  console.log('✅ DOM cargado para director');
+async function inicializarDirectorPanel() {
+  console.log('✅ Inicializando panel director...');
   
   // Configurar elementos del DOM
   const clubNameElement = document.getElementById("clubName");
@@ -68,7 +68,7 @@ document.addEventListener('DOMContentLoaded', async function() {
       // Si es distrital en modo lectura, agregar indicador
       if (esDistritalModoLectura) {
         clubNameElement.textContent = `${clubNombre} (MODO LECTURA)`;
-        clubNameElement.style.color = '#7CFF8C'; // Verde como tu tema
+        clubNameElement.style.color = '#7CFF8C';
         clubNameElement.style.fontSize = '1.2rem';
       } else {
         clubNameElement.textContent = clubNombre || "MI CLUB";
@@ -87,10 +87,17 @@ document.addEventListener('DOMContentLoaded', async function() {
       logoutBtn.classList.remove("hidden");
     }
     
-    logoutBtn.addEventListener("click", function() {
+    // Remover event listeners anteriores para evitar duplicados
+    const newLogoutBtn = logoutBtn.cloneNode(true);
+    logoutBtn.parentNode.replaceChild(newLogoutBtn, logoutBtn);
+    
+    newLogoutBtn.addEventListener("click", function() {
       console.log('🚪 Cerrando sesión...');
-      localStorage.clear();
-      window.location.href = "/login.html";
+      document.body.classList.add("page-exit");
+      setTimeout(() => {
+        localStorage.clear();
+        window.location.href = "/login.html";
+      }, 300);
     });
   }
   
@@ -99,32 +106,38 @@ document.addEventListener('DOMContentLoaded', async function() {
     if (esDistritalModoLectura) {
       btnVolver.classList.remove("hidden");
       btnVolver.textContent = "← Volver a clubes";
+      
+      // Remover event listeners anteriores para evitar duplicados
+      const newBtnVolver = btnVolver.cloneNode(true);
+      btnVolver.parentNode.replaceChild(newBtnVolver, btnVolver);
+      
+      newBtnVolver.addEventListener("click", function() {
+        console.log('🔙 Volviendo a clubes...');
+        document.body.classList.add("page-exit");
+        setTimeout(() => {
+          window.location.href = "/dashboard-distrital.html";
+        }, 300);
+      });
     } else {
       btnVolver.classList.add("hidden");
     }
-    
-    btnVolver.addEventListener("click", function() {
-      if (esDistritalModoLectura) {
-        // Distrital: volver a lista de clubes
-        window.location.href = "/dashboard-distrital.html";
-      } else {
-        // Director: no hay volver
-        window.history.back();
-      }
-    });
   }
   
   // ============================================
   // 📚 CARGAR CLASES (MANTENIENDO TUS ESTILOS)
   // ============================================
   if (classesContainer) {
-    await cargarClases();
+    await cargarClases(classesContainer);
   } else {
     console.error('❌ No se encontró el contenedor de clases');
   }
   
   // Mostrar mensaje si es modo lectura (con estilos)
   if (esDistritalModoLectura && classesContainer) {
+    // Remover mensaje anterior si existe
+    const existingInfo = document.querySelector('.modo-lectura-info');
+    if (existingInfo) existingInfo.remove();
+    
     const infoDiv = document.createElement('div');
     infoDiv.className = 'modo-lectura-info';
     infoDiv.style.cssText = `
@@ -145,19 +158,18 @@ document.addEventListener('DOMContentLoaded', async function() {
     `;
     classesContainer.prepend(infoDiv);
   }
-});
+}
 
 // ============================================
 // 📚 FUNCIÓN PARA CARGAR CLASES CON TUS ESTILOS
 // ============================================
-async function cargarClases() {
+async function cargarClases(container) {
   try {
     console.log('📥 Cargando clases para club:', clubId);
     
     // Si no hay clubId, no podemos cargar clases
     if (!clubId) {
       console.error('❌ No hay club_id disponible');
-      const container = document.getElementById("classesContainer");
       if (container) {
         container.innerHTML = `
           <div style="color: white; text-align: center; padding: 40px;">
@@ -187,8 +199,10 @@ async function cargarClases() {
     const clases = await response.json();
     console.log('📦 Clases recibidas:', clases);
     
-    const container = document.getElementById("classesContainer");
-    if (!container) return;
+    if (!container) {
+      console.error('❌ Contenedor no encontrado');
+      return;
+    }
     
     container.innerHTML = "";
     
@@ -304,23 +318,55 @@ async function cargarClases() {
   } catch (error) {
     console.error('❌ Error cargando clases:', error);
     
-    const container = document.getElementById("classesContainer");
     if (container) {
       container.innerHTML = `
         <div style="color: white; text-align: center; padding: 40px; background: rgba(0,0,0,0.8); border-radius: 10px;">
           <p style="color: #ff6b6b; margin-bottom: 10px;">⚠️ Error al cargar las clases</p>
           <p style="font-size: 0.9rem; margin-bottom: 20px; color: #ccc;">${error.message}</p>
-          <button onclick="cargarClases()" style="padding: 10px 20px; background: #7CFF8C; border: none; cursor: pointer; margin: 5px;">
+          <button onclick="recargarPanelCompleto()" style="padding: 10px 20px; background: #7CFF8C; border: none; cursor: pointer; margin: 5px;">
             Reintentar
           </button>
-          <button onclick="window.location.href='/dashboard-distrital.html'" style="padding: 10px 20px; background: #2f80ed; border: none; cursor: pointer; margin: 5px; color: white;">
-            Volver a clubes
-          </button>
+          ${esDistritalModoLectura ? 
+            `<button onclick="window.location.href='/dashboard-distrital.html'" style="padding: 10px 20px; background: #2f80ed; border: none; cursor: pointer; margin: 5px; color: white;">
+              Volver a clubes
+            </button>` : 
+            `<button onclick="window.location.href='/login.html'" style="padding: 10px 20px; background: #ff6b6b; border: none; cursor: pointer; margin: 5px; color: white;">
+              Ir al login
+            </button>`
+          }
         </div>
       `;
     }
   }
 }
+
+// ============================================
+// 📋 ESPERAR A QUE EL DOM ESTÉ LISTO
+// ============================================
+document.addEventListener('DOMContentLoaded', async function() {
+  console.log('✅ DOM cargado para director');
+  
+  // Aplicar animación de entrada
+  document.body.classList.add("animate-in");
+  
+  // Detectar si venimos de navegación "back"
+  const navigationEntry = performance.getEntriesByType("navigation")[0];
+  if (navigationEntry) {
+    console.log('🔍 Tipo de navegación:', navigationEntry.type);
+    
+    if (navigationEntry.type === 'back_forward') {
+      console.log('🔙 Detectada navegación back/forward, forzando recarga completa');
+      // Forzar recarga completa de datos
+      setTimeout(() => {
+        window.location.reload();
+      }, 100);
+      return;
+    }
+  }
+  
+  // Inicializar panel
+  await inicializarDirectorPanel();
+});
 
 // ============================================
 // 🛠️ FUNCIONES AUXILIARES GLOBALES
@@ -341,7 +387,42 @@ window.crearNuevaClase = function() {
   alert(`Clase "${nombre}" sería creada (función por implementar)`);
 };
 
-// Función global para recargar
-window.recargarClases = cargarClases;
+// Función global para recargar clases
+window.recargarClases = function() {
+  const container = document.getElementById("classesContainer");
+  if (container) {
+    cargarClases(container);
+  }
+};
+
+// Función para recargar panel completo
+window.recargarPanelCompleto = function() {
+  console.log('🔄 Recargando panel completo...');
+  window.location.reload();
+};
+
+// ============================================
+// 🎯 MANEJO DE NAVEGACIÓN ESPECIAL
+// ============================================
+
+// Detectar cuando la página se hace visible nuevamente (útil para navegación back)
+document.addEventListener('visibilitychange', function() {
+  if (document.visibilityState === 'visible') {
+    console.log('👁️ Página visible nuevamente');
+    // Verificar si necesitamos recargar datos
+    if (performance.navigation && performance.navigation.type === 2) {
+      console.log('🔄 Navegación back detectada via visibilitychange');
+      setTimeout(() => {
+        window.location.reload();
+      }, 200);
+    }
+  }
+});
+
+// Manejar evento beforeunload para limpiar si es necesario
+window.addEventListener('beforeunload', function() {
+  console.log('🚀 Navegando fuera de director panel...');
+  // Opcional: limpiar estados temporales
+});
 
 console.log('✅ director.js inicializado correctamente');

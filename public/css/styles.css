@@ -552,3 +552,48 @@ td.avanzada {
     width: 45px;
   }
 }
+
+/* =========================
+   BOTÓN VOLVER MEJORADO
+========================= */
+.btn-volver {
+  padding: 8px 16px;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  cursor: pointer;
+  margin-bottom: 12px;
+  transition: all 0.3s ease;
+  text-decoration: none;
+  display: inline-block;
+}
+
+.btn-volver:hover {
+  background-color: #0056b3;
+  transform: translateX(-2px);
+}
+
+.btn-volver:active {
+  transform: translateX(0);
+}
+
+/* Animación específica para volver */
+.page-exit .btn-volver {
+  animation: slideOutLeft 0.3s ease forwards;
+}
+
+@keyframes slideOutLeft {
+  to {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+}
+
+@media (max-width: 600px) {
+  .btn-volver {
+    font-size: 12px;
+    padding: 6px 12px;
+  }
+}
